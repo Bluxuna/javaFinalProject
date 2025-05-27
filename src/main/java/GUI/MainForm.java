@@ -1,5 +1,6 @@
 package GUI;
 
+import Databases.DatabaseManager;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -7,10 +8,13 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
-
+import Databases.dbObjects.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+
 
 public class MainForm extends Application {
 
@@ -27,12 +31,14 @@ public class MainForm extends Application {
     private Button makeTransactionButton;
 
     private Map<Integer, Double> productDatabase;
+    protected DatabaseManager dbmanager;
     private double currentTotal = 0.0;
 
     private Stage primaryStage;
 
     @Override
     public void start(Stage stage) {
+        this.dbmanager = new DatabaseManager();
         this.primaryStage = stage;
 
         productDatabase = new HashMap<>();
@@ -165,6 +171,7 @@ public class MainForm extends Application {
         stage.setScene(scene);
         stage.setMaximized(true);
         stage.show();
+        
     }
 
     private void addItem() {
@@ -174,16 +181,21 @@ public class MainForm extends Application {
             int couponPercentage = Integer.parseInt(couponPercentageField.getText());
 
             if (productId <= 0 || quantity <= 0 || couponPercentage < 0 || couponPercentage > 100) {
-                showAlert(Alert.AlertType.WARNING, "Input Error", "Please enter valid positive numbers for Product ID, Quantity, and a Coupon % between 0-100.");
+                showAlert(Alert.AlertType.WARNING, "Input Error", 
+                    "Please enter valid positive numbers for Product ID, Quantity, and a Coupon % between 0-100.");
                 return;
             }
 
-            if (!productDatabase.containsKey(productId)) {
-                showAlert(Alert.AlertType.ERROR, "Product Not Found", "Product ID " + productId + " does not exist in the database.");
+            // Get product from database
+            Product product = DatabaseManager.getProductById(productId);
+            
+            if (product == null) {
+                showAlert(Alert.AlertType.ERROR, "Product Not Found", 
+                    "Product ID " + productId + " does not exist or has insufficient inventory.");
                 return;
             }
 
-            double basePrice = productDatabase.get(productId);
+            double basePrice = product.getPrice();
             double itemPrice = basePrice * quantity;
             double discountAmount = itemPrice * (couponPercentage / 100.0);
             double finalItemPrice = itemPrice - discountAmount;
@@ -193,7 +205,8 @@ public class MainForm extends Application {
             itemRow.setPadding(new Insets(2, 5, 2, 5));
             itemRow.setStyle("-fx-background-color: #f8f8f8; -fx-border-color: #eee; -fx-border-width: 0 0 1px 0;");
 
-            Label itemInfo = new Label(String.format("ID: %d | Qty: %d | Price: $%.2f (%.0f%% off)", productId, quantity, finalItemPrice, (double)couponPercentage));
+            Label itemInfo = new Label(String.format("ID: %d | Name: %s | Qty: %d | Price: $%.2f (%.0f%% off)", 
+                productId, product.getName(), quantity, finalItemPrice, (double)couponPercentage));
             itemInfo.setFont(new Font("Arial", 14));
             HBox.setHgrow(itemInfo, Priority.ALWAYS);
 
@@ -209,7 +222,8 @@ public class MainForm extends Application {
             itemRow.getChildren().addAll(itemInfo, deleteButton);
             cartItemsVBox.getChildren().add(itemRow);
 
-            Label priceLabel = new Label(String.format("Product %d x %d: $%.2f", productId, quantity, finalItemPrice));
+            Label priceLabel = new Label(String.format("%s x %d: $%.2f", 
+                product.getName(), quantity, finalItemPrice));
             priceLabel.setFont(new Font("Arial", 14));
             itemPricesVBox.getChildren().add(priceLabel);
 
@@ -220,7 +234,8 @@ public class MainForm extends Application {
             updateTotalDisplay();
 
         } catch (NumberFormatException e) {
-            showAlert(Alert.AlertType.ERROR, "Invalid Input", "Please enter valid numbers for Product ID, Quantity, and Coupon %.");
+            showAlert(Alert.AlertType.ERROR, "Invalid Input", 
+                "Please enter valid numbers for Product ID, Quantity, and Coupon %.");
         }
     }
 
@@ -273,8 +288,195 @@ public class MainForm extends Application {
             return;
         }
 
-        showAlert(Alert.AlertType.INFORMATION, "Transaction Complete", String.format("Transaction of $%.2f processed successfully!", currentTotal));
+        showPaymentSelectionDialog();
+    }
 
+    private void showPaymentSelectionDialog() {
+        Stage paymentStage = new Stage();
+        paymentStage.initModality(Modality.APPLICATION_MODAL);
+        paymentStage.initOwner(primaryStage);
+        paymentStage.setTitle("Payment Selection");
+        paymentStage.setResizable(false);
+
+        VBox mainLayout = new VBox(20);
+        mainLayout.setPadding(new Insets(30));
+        mainLayout.setAlignment(Pos.CENTER);
+        mainLayout.setStyle("-fx-background-color: #ecf0f1;");
+
+        Label titleLabel = new Label("Select Payment Method");
+        titleLabel.setFont(new Font("Arial", 24));
+        titleLabel.setStyle("-fx-font-weight: bold;");
+
+        Label totalLabel = new Label(String.format("Total Amount: $%.2f", currentTotal));
+        totalLabel.setFont(new Font("Arial", 18));
+        totalLabel.setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold;");
+
+        HBox buttonBox = new HBox(20);
+        buttonBox.setAlignment(Pos.CENTER);
+
+        Button cardButton = new Button("Card Payment");
+        cardButton.setPrefSize(150, 60);
+        cardButton.setFont(new Font("Arial", 16));
+        cardButton.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold;");
+        cardButton.setOnAction(e -> {
+            paymentStage.close();
+            processCardPayment();
+        });
+
+        Button cashButton = new Button("Cash Payment");
+        cashButton.setPrefSize(150, 60);
+        cashButton.setFont(new Font("Arial", 16));
+        cashButton.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;");
+        cashButton.setOnAction(e -> {
+            paymentStage.close();
+            showCashPaymentDialog();
+        });
+
+        Button cancelButton = new Button("Cancel");
+        cancelButton.setPrefSize(100, 40);
+        cancelButton.setFont(new Font("Arial", 14));
+        cancelButton.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold;");
+        cancelButton.setOnAction(e -> paymentStage.close());
+
+        buttonBox.getChildren().addAll(cardButton, cashButton);
+        mainLayout.getChildren().addAll(titleLabel, totalLabel, buttonBox, cancelButton);
+
+        Scene scene = new Scene(mainLayout, 400, 300);
+        paymentStage.setScene(scene);
+        paymentStage.showAndWait();
+    }
+
+    private void processCardPayment() {
+        completeTransaction("Card");
+    }
+
+    private void showCashPaymentDialog() {
+        Stage cashStage = new Stage();
+        cashStage.initModality(Modality.APPLICATION_MODAL);
+        cashStage.initOwner(primaryStage);
+        cashStage.setTitle("Cash Payment");
+        cashStage.setResizable(false);
+
+        VBox mainLayout = new VBox(20);
+        mainLayout.setPadding(new Insets(30));
+        mainLayout.setAlignment(Pos.CENTER);
+        mainLayout.setStyle("-fx-background-color: #ecf0f1;");
+
+        Label titleLabel = new Label("Cash Payment");
+        titleLabel.setFont(new Font("Arial", 24));
+        titleLabel.setStyle("-fx-font-weight: bold;");
+
+        Label totalLabel = new Label(String.format("Total Amount: $%.2f", currentTotal));
+        totalLabel.setFont(new Font("Arial", 18));
+        totalLabel.setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold;");
+
+        HBox cashInputBox = new HBox(10);
+        cashInputBox.setAlignment(Pos.CENTER);
+        Label cashLabel = new Label("Cash Given: $");
+        cashLabel.setFont(new Font("Arial", 16));
+
+        TextField cashField = new TextField();
+        cashField.setPromptText("Enter amount");
+        cashField.setPrefWidth(120);
+        cashField.setFont(new Font("Arial", 16));
+
+        cashInputBox.getChildren().addAll(cashLabel, cashField);
+
+        Label changeLabel = new Label("Change: $0.00");
+        changeLabel.setFont(new Font("Arial", 18));
+        changeLabel.setStyle("-fx-text-fill: #666666; -fx-font-weight: bold;");
+
+        // validacia
+        cashField.setOnKeyReleased(e -> {
+            String text = cashField.getText().trim();
+            if (text.isEmpty()) {
+                changeLabel.setText("Change: $0.00");
+                changeLabel.setStyle("-fx-text-fill: #666666; -fx-font-weight: bold;");
+                return;
+            }
+
+            try {
+                double cashGiven = Double.parseDouble(text);
+                double change = cashGiven - currentTotal;
+                if (change >= 0) {
+                    changeLabel.setText(String.format("Change: $%.2f", change));
+                    changeLabel.setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold;");
+                } else {
+                    changeLabel.setText(String.format("Need $%.2f more", Math.abs(change)));
+                    changeLabel.setStyle("-fx-text-fill: #e74c3c; -fx-font-weight: bold;");
+                }
+            } catch (NumberFormatException ex) {
+                changeLabel.setText("Invalid amount");
+                changeLabel.setStyle("-fx-text-fill: #e74c3c; -fx-font-weight: bold;");
+            }
+        });
+
+        HBox buttonBox = new HBox(15);
+        buttonBox.setAlignment(Pos.CENTER);
+
+        Button completeButton = new Button("Complete Payment");
+        completeButton.setPrefSize(150, 40);
+        completeButton.setFont(new Font("Arial", 14));
+        completeButton.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;");
+        completeButton.setOnAction(e -> {
+            String cashText = cashField.getText().trim();
+            if (cashText.isEmpty()) {
+                showAlert(Alert.AlertType.ERROR, "Invalid Input", "Please enter a cash amount.");
+                return;
+            }
+
+            try {
+                double cashGiven = Double.parseDouble(cashText);
+                if (cashGiven >= currentTotal) {
+                    cashStage.close();
+                    double change = cashGiven - currentTotal;
+                    completeTransaction("Cash", cashGiven, change);
+                } else {
+                    showAlert(Alert.AlertType.WARNING, "Insufficient Cash",
+                            String.format("Cash given ($%.2f) is less than total amount ($%.2f)", cashGiven, currentTotal));
+                }
+            } catch (NumberFormatException ex) {
+                showAlert(Alert.AlertType.ERROR, "Invalid Input", "Please enter a valid number for cash amount.");
+            }
+        });
+
+        Button cancelButton = new Button("Cancel");
+        cancelButton.setPrefSize(100, 40);
+        cancelButton.setFont(new Font("Arial", 14));
+        cancelButton.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold;");
+        cancelButton.setOnAction(e -> cashStage.close());
+
+        buttonBox.getChildren().addAll(completeButton, cancelButton);
+        mainLayout.getChildren().addAll(titleLabel, totalLabel, cashInputBox, changeLabel, buttonBox);
+
+        Scene scene = new Scene(mainLayout, 400, 350);
+        cashStage.setScene(scene);
+
+        // Show the stage and then request focus
+        cashStage.show();
+        cashField.requestFocus();
+    }
+
+    private void completeTransaction(String paymentMethod) {
+        completeTransaction(paymentMethod, 0, 0);
+    }
+
+    private void completeTransaction(String paymentMethod, double cashGiven, double change) {
+        StringBuilder message = new StringBuilder();
+        message.append("Transaction Made Successfully!\n\n");
+        message.append(String.format("Transaction Amount: $%.2f\n", currentTotal));
+        message.append(String.format("Payment Method: %s\n", paymentMethod));
+
+        if (paymentMethod.equals("Cash")) {
+            message.append(String.format("Cash Given: $%.2f\n", cashGiven));
+            message.append(String.format("Change: $%.2f\n", change));
+        }
+
+        message.append("\nThank you for your purchase!");
+
+        showAlert(Alert.AlertType.INFORMATION, "Transaction Made", message.toString());
+
+        // Clear the cart after successful transaction
         cartItemsVBox.getChildren().clear();
         itemPricesVBox.getChildren().clear();
         currentTotal = 0.0;

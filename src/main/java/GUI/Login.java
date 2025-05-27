@@ -33,6 +33,9 @@ public class Login extends Application {
         Label lastNameLabel = new Label("Last Name:");
         lastNameField = new TextField();
         lastNameField.setPromptText("Enter your last name");
+        Label marketID = new Label("Market ID:");
+        TextField marketIDField = new TextField();
+
 
         loginButton = new Button("Login");
         loginButton.setDefaultButton(true);
@@ -47,6 +50,8 @@ public class Login extends Application {
                 firstNameField,
                 lastNameLabel,
                 lastNameField,
+                marketID,
+                marketIDField,
                 loginButton
         );
 
@@ -55,7 +60,9 @@ public class Login extends Application {
             String firstName = firstNameField.getText().trim();
             String lastName = lastNameField.getText().trim();
 
-            if (!firstName.isEmpty() && !lastName.isEmpty() &&( databaseManager.employeeExists(firstName, lastName))) {
+            int supermarketID = Integer.parseInt(marketIDField.getText().trim());
+
+            if (!firstName.isEmpty() && !lastName.isEmpty() &&( databaseManager.employeeExists(firstName, lastName,supermarketID))) {
                 System.out.println("Login Successful for: " + firstName + " " + lastName);
                 openMainForm(primaryStage);
             } else {

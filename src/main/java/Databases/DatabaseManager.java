@@ -1,7 +1,8 @@
-
 package Databases;
 
 import Databases.dbObjects.*;
+import com.sun.source.tree.TryTree;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -116,6 +117,35 @@ public class DatabaseManager {
         }
         return products;
     }
+    public static Product getProductById(int id) {
+        Product product = null;
+        String query = "SELECT * FROM Products " +
+                      "INNER JOIN Inventory ON Products.ProductID = Inventory.ProductID " +
+                      "WHERE Products.ProductID = ? AND Inventory.Quantity >= 0";
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            stmt.setInt(1, id);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+
+                if (rs.next()) {
+                    product = new Product(
+                        rs.getString("Name"),
+                        rs.getInt("CategoryID"),
+                        rs.getDouble("Price"),
+                        rs.getInt("Quantity")
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error retrieving product: " + e.getMessage());
+        }
+
+        return product;
+    }
 
     // Sale CRUD operations
 //    public static boolean createSale(Sale sale) {
@@ -166,7 +196,7 @@ public class DatabaseManager {
 
     // Inventory CRUD operations
     public static boolean updateInventory(Inventory inventory) {
-        String query = "UPDATE Products SET QuantityInStock = ? WHERE ProductID = ?";
+        String query = "UPDATE Inventory SET Quantity = ? WHERE ProductID = ?";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
 
@@ -216,13 +246,14 @@ public class DatabaseManager {
             return null;
         }
     }
-    public static boolean employeeExists(String firstName, String lastName) {
-        String query = "SELECT * FROM Employees WHERE FirstName = ? AND LastName = ?";
+    public static boolean employeeExists(String firstName, String lastName,int marketID) {
+        String query = "SELECT * FROM Employees WHERE FirstName = ? AND LastName = ? AND SuperMarketID =? ";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
 
             stmt.setString(1, firstName);
             stmt.setString(2, lastName);
+            stmt.setInt(3,marketID);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 return rs.next();
