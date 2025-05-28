@@ -1,6 +1,7 @@
 
 package Core;
 import Databases.DatabaseManager;
+import GUI.AdminForm;
 import GUI.Login;
 import javafx.application.Application;
 import javafx.stage.Stage;
@@ -10,11 +11,13 @@ import java.sql.Connection;
 
 public class Main extends Application {
     @Override
-    public void start(Stage stage) throws IOException {
+    public void start(Stage stage) throws Exception {
         Login loginWindow = new Login();
         loginWindow.start(stage);
-    }
 
+
+
+    }
     public static void main(String[] args) {
         DatabaseManager dbManager = new DatabaseManager();
         Connection dbConnection = DatabaseManager.getConnection();

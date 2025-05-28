@@ -62,10 +62,14 @@ public class Login extends Application {
 
             int supermarketID = Integer.parseInt(marketIDField.getText().trim());
 
-            if (!firstName.isEmpty() && !lastName.isEmpty() &&( databaseManager.employeeExists(firstName, lastName,supermarketID))) {
-                System.out.println("Login Successful for: " + firstName + " " + lastName);
+            if (!firstName.isEmpty() && !lastName.isEmpty() &&( databaseManager.employeeExists(firstName, lastName,supermarketID)) && !(databaseManager.isAdmin(firstName,lastName))) {
+                System.out.println("Login Successful for as a cashier: " + firstName + " " + lastName);
                 openMainForm(primaryStage);
-            } else {
+            } else if (!firstName.isEmpty() && !lastName.isEmpty() &&( databaseManager.employeeExists(firstName, lastName,supermarketID)) && (databaseManager.isAdmin(firstName,lastName))) {
+                System.out.println("Login Successful for as an admin: " + firstName + " " + lastName);
+                openAdminForm(primaryStage);
+
+            }else {
                 System.out.println("Please enter both first and last name.");
                 Alert alert = new Alert(Alert.AlertType.WARNING);
                 alert.setTitle("Login Error");
@@ -92,6 +96,19 @@ public class Login extends Application {
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("Failed to open Main Form.");
+        }
+    }
+    private void openAdminForm(Stage currentStage) {
+        try {
+
+            currentStage.close();
+            AdminForm adminForm = new AdminForm();
+            Stage adminStage = new Stage();
+            adminForm.start(adminStage);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Failed to open Admin Form.");
         }
     }
     private void handleLogout() {

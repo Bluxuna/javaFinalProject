@@ -147,6 +147,35 @@ public class DatabaseManager {
         return product;
     }
 
+    public static List<Product> searchProductsByName(String searchTerm) {
+        List<Product> products = new ArrayList<>();
+        String query = "SELECT p.*, i.Quantity FROM Products p " +
+                      "INNER JOIN Inventory i ON p.ProductID = i.ProductID " +
+                      "WHERE p.Name LIKE ? AND i.Quantity >= 0";
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            stmt.setString(1, "%" + searchTerm + "%");
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    products.add(new Product(
+                        rs.getString("Name"),
+                        rs.getInt("CategoryID"),
+                        rs.getDouble("Price"),
+                        rs.getInt("Quantity")
+                    ));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error searching products: " + e.getMessage());
+        }
+
+        return products;
+    }
+
     // Sale CRUD operations
 //    public static boolean createSale(Sale sale) {
 //        String query = "INSERT INTO Sales (EmployeeID, TotalAmount, SaleDate) VALUES (?, ?, ?)";
@@ -261,6 +290,27 @@ public class DatabaseManager {
         } catch (SQLException e) {
             e.printStackTrace();
             System.err.println("Error checking employee existence: " + e.getMessage());
+            return false;
+        }
+    }
+    public static boolean isAdmin(String firstName, String lastName) {
+        String query = "SELECT RoleID FROM Employees WHERE FirstName = ? AND LastName = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            stmt.setString(1, firstName);
+            stmt.setString(2, lastName);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    int roleID = rs.getInt("RoleID");
+                    return roleID == 1;
+                }
+                return false;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.err.println("Error checking admin status: " + e.getMessage());
             return false;
         }
     }

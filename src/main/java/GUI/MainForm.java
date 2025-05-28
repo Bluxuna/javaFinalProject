@@ -331,7 +331,6 @@ public class MainForm extends Application {
             paymentStage.close();
             showCashPaymentDialog();
         });
-
         Button cancelButton = new Button("Cancel");
         cancelButton.setPrefSize(100, 40);
         cancelButton.setFont(new Font("Arial", 14));
