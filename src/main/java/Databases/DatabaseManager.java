@@ -117,16 +117,17 @@ public class DatabaseManager {
         }
         return products;
     }
-    public static Product getProductById(int id) {
+    public static Product getProductById(int id, int amount) {
         Product product = null;
         String query = "SELECT * FROM Products " +
                       "INNER JOIN Inventory ON Products.ProductID = Inventory.ProductID " +
-                      "WHERE Products.ProductID = ? AND Inventory.Quantity >= 0";
+                      "WHERE Products.ProductID = ? AND Inventory.Quantity >= ?";
 
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
 
             stmt.setInt(1, id);
+            stmt.setInt(2, amount);
 
             try (ResultSet rs = stmt.executeQuery()) {
 

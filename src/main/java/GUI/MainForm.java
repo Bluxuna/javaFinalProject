@@ -14,6 +14,7 @@ import Databases.dbObjects.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Stack;
 
 
 public class MainForm extends Application {
@@ -27,12 +28,12 @@ public class MainForm extends Application {
 
     private VBox itemPricesVBox;
     private Label totalAmountLabel;
-    private Button calculateTotalButton;
     private Button makeTransactionButton;
 
     private Map<Integer, Double> productDatabase;
     protected DatabaseManager dbmanager;
     private double currentTotal = 0.0;
+    private Stack<Product> productStack = new Stack<>();
 
     private Stage primaryStage;
 
@@ -141,9 +142,6 @@ public class MainForm extends Application {
         totalAmountLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #27ae60;");
         totalHBox.getChildren().addAll(totalStaticLabel, totalAmountLabel);
 
-        calculateTotalButton = new Button("Calculate Total");
-        calculateTotalButton.setPrefWidth(Double.MAX_VALUE);
-        calculateTotalButton.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold;");
 
         makeTransactionButton = new Button("Make Transaction");
         makeTransactionButton.setPrefWidth(Double.MAX_VALUE);
@@ -151,7 +149,7 @@ public class MainForm extends Application {
         makeTransactionButton.setFont(new Font("Arial", 20));
         makeTransactionButton.setStyle("-fx-background-color: #f39c12; -fx-text-fill: white; -fx-font-weight: bold;");
 
-        rightSection.getChildren().addAll(pricesTitle, pricesScrollPane, new Separator(), totalHBox, calculateTotalButton, makeTransactionButton);
+        rightSection.getChildren().addAll(pricesTitle, pricesScrollPane, new Separator(), totalHBox, makeTransactionButton);
         VBox.setVgrow(pricesScrollPane, Priority.ALWAYS);
 
         BorderPane mainLayout = new BorderPane();
@@ -163,7 +161,6 @@ public class MainForm extends Application {
         mainLayout.setCenter(contentSplitPane);
 
         addItemButton.setOnAction(e -> addItem());
-        calculateTotalButton.setOnAction(e -> updateTotalDisplay());
         makeTransactionButton.setOnAction(e -> makeTransaction());
 
         Scene scene = new Scene(mainLayout, 1000, 700);
@@ -171,7 +168,7 @@ public class MainForm extends Application {
         stage.setScene(scene);
         stage.setMaximized(true);
         stage.show();
-        
+
     }
 
     private void addItem() {
@@ -187,13 +184,16 @@ public class MainForm extends Application {
             }
 
             // Get product from database
-            Product product = DatabaseManager.getProductById(productId);
-            
+            Product product = DatabaseManager.getProductById(productId,quantity);
+
             if (product == null) {
                 showAlert(Alert.AlertType.ERROR, "Product Not Found", 
                     "Product ID " + productId + " does not exist or has insufficient inventory.");
                 return;
             }
+
+            // Push product to stack
+            productStack.push(product);
 
             double basePrice = product.getPrice();
             double itemPrice = basePrice * quantity;
@@ -217,6 +217,11 @@ public class MainForm extends Application {
                 cartItemsVBox.getChildren().remove(itemRow);
                 updateItemizedPrices();
                 updateTotalDisplay();
+
+                // Pop product from stack if not empty
+                if (!productStack.isEmpty()) {
+                    productStack.pop();
+                }
             });
 
             itemRow.getChildren().addAll(itemInfo, deleteButton);
@@ -286,6 +291,9 @@ public class MainForm extends Application {
         if (currentTotal <= 0 && cartItemsVBox.getChildren().isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "Transaction Error", "No items in cart to process transaction.");
             return;
+        }
+        for (Product p : productStack) {
+            System.out.println(p.getName());
         }
 
         showPaymentSelectionDialog();
@@ -451,7 +459,7 @@ public class MainForm extends Application {
         Scene scene = new Scene(mainLayout, 400, 350);
         cashStage.setScene(scene);
 
-        // Show the stage and then request focus
+        // Show the stage
         cashStage.show();
         cashField.requestFocus();
     }
@@ -480,6 +488,10 @@ public class MainForm extends Application {
         itemPricesVBox.getChildren().clear();
         currentTotal = 0.0;
         totalAmountLabel.setText("$0.00");
+
+
+        // Clear the product stack
+        productStack.clear();
     }
 
     private void handleLogout() {
