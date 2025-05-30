@@ -18,13 +18,11 @@ import java.util.List;
 public class AdminForm extends Application {
     private Stage primaryStage;
     private VBox root;
-    private DatabaseManager databaseManager;
     private TextField searchField;
     private Button searchButton;
     private TextArea resultArea;
 
     public void start(Stage stage) throws Exception {
-        databaseManager = new DatabaseManager();
         this.primaryStage = stage;
         stage.setTitle("Admin Form");
 

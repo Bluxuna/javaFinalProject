@@ -31,15 +31,20 @@ public class MainForm extends Application {
     private Button makeTransactionButton;
 
     private Map<Integer, Double> productDatabase;
-    protected DatabaseManager dbmanager;
     private double currentTotal = 0.0;
     private Stack<Product> productStack = new Stack<>();
 
     private Stage primaryStage;
+    private String fname,lname;
+    private int marketID;
+    public MainForm(String fname,String lname,int marketID) {
+        this.fname=fname;
+        this.lname=lname;
+        this.marketID=marketID;
+    }
 
     @Override
     public void start(Stage stage) {
-        this.dbmanager = new DatabaseManager();
         this.primaryStage = stage;
 
         productDatabase = new HashMap<>();
@@ -54,7 +59,7 @@ public class MainForm extends Application {
         topBar.setPadding(new Insets(10));
         topBar.setStyle("-fx-background-color: #2c3e50;");
 
-        Label appTitle = new Label("Cashier Window");
+        Label appTitle = new Label("Cashier: " +  this.fname + " " + this.lname + " marketID: " + this.marketID);
         appTitle.setFont(new Font("Arial", 30));
         appTitle.setStyle("-fx-text-fill: white;");
         HBox.setHgrow(appTitle, Priority.ALWAYS);

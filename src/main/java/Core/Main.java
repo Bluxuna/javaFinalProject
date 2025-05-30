@@ -19,7 +19,6 @@ public class Main extends Application {
 
     }
     public static void main(String[] args) {
-        DatabaseManager dbManager = new DatabaseManager();
         Connection dbConnection = DatabaseManager.getConnection();
 
         if (dbConnection != null) {

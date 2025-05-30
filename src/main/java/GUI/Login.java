@@ -13,8 +13,6 @@ import javafx.stage.Stage;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonType;
 public class Login extends Application {
-    private DatabaseManager databaseManager;
-
     private TextField firstNameField;
     private TextField lastNameField;
     private Button loginButton;
@@ -22,7 +20,6 @@ public class Login extends Application {
 
     @Override
     public void start(Stage stage) {
-        databaseManager = new DatabaseManager();
         this.primaryStage = stage;
 
         // --- Login Form Elements ---
@@ -62,10 +59,10 @@ public class Login extends Application {
 
             int supermarketID = Integer.parseInt(marketIDField.getText().trim());
 
-            if (!firstName.isEmpty() && !lastName.isEmpty() &&( databaseManager.employeeExists(firstName, lastName,supermarketID)) && !(databaseManager.isAdmin(firstName,lastName))) {
+            if (!firstName.isEmpty() && !lastName.isEmpty() &&( DatabaseManager.employeeExists(firstName, lastName,supermarketID)) && !(DatabaseManager.isAdmin(firstName,lastName))) {
                 System.out.println("Login Successful for as a cashier: " + firstName + " " + lastName);
-                openMainForm(primaryStage);
-            } else if (!firstName.isEmpty() && !lastName.isEmpty() &&( databaseManager.employeeExists(firstName, lastName,supermarketID)) && (databaseManager.isAdmin(firstName,lastName))) {
+                openMainForm(primaryStage,firstName,lastName,supermarketID);
+            } else if (!firstName.isEmpty() && !lastName.isEmpty() &&( DatabaseManager.employeeExists(firstName, lastName,supermarketID)) && (DatabaseManager.isAdmin(firstName,lastName))) {
                 System.out.println("Login Successful for as an admin: " + firstName + " " + lastName);
                 openAdminForm(primaryStage);
 
@@ -86,11 +83,11 @@ public class Login extends Application {
         stage.show();
     }
 
-    private void openMainForm(Stage currentStage) {
+    private void openMainForm(Stage currentStage, String firstName, String lastName, int supermarketID ) {
         try {
             // Close the current login stage
             currentStage.close();
-            MainForm mainForm = new MainForm();
+            MainForm mainForm = new MainForm(firstName,lastName,supermarketID);
             Stage mainStage = new Stage();
             mainForm.start(mainStage);
         } catch (Exception e) {

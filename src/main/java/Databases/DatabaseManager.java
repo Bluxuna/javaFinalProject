@@ -276,6 +276,7 @@ public class DatabaseManager {
             return null;
         }
     }
+
     public static boolean employeeExists(String firstName, String lastName,int marketID) {
         String query = "SELECT * FROM Employees WHERE FirstName = ? AND LastName = ? AND SuperMarketID =? ";
         try (Connection conn = getConnection();
