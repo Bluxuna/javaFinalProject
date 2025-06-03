@@ -6,6 +6,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
@@ -31,7 +32,12 @@ public class Login extends Application {
         lastNameField = new TextField();
         lastNameField.setPromptText("Enter your last name");
         Label marketID = new Label("Market ID:");
-        TextField marketIDField = new TextField();
+        ChoiceBox<Integer> marketIDField = new ChoiceBox<>();
+        // Populate the ChoiceBox with values 1-10
+        for (int i = 1; i <= 10; i++) {
+            marketIDField.getItems().add(i);
+        }
+        marketIDField.setValue(1); // Set default value
 
 
         loginButton = new Button("Login");
@@ -57,7 +63,7 @@ public class Login extends Application {
             String firstName = firstNameField.getText().trim();
             String lastName = lastNameField.getText().trim();
 
-            int supermarketID = Integer.parseInt(marketIDField.getText().trim());
+            int supermarketID = marketIDField.getValue();
 
             if (!firstName.isEmpty() && !lastName.isEmpty() &&( DatabaseManager.employeeExists(firstName, lastName,supermarketID)) && !(DatabaseManager.isAdmin(firstName,lastName))) {
                 System.out.println("Login Successful for as a cashier: " + firstName + " " + lastName);

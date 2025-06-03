@@ -359,7 +359,195 @@ public class MainForm extends Application {
     }
 
     private void processCardPayment() {
-        completeTransaction("Card");
+        showCardPaymentDialog();
+    }
+
+    private void showCardPaymentDialog() {
+        Stage cardStage = new Stage();
+        cardStage.initModality(Modality.APPLICATION_MODAL);
+        cardStage.initOwner(primaryStage);
+        cardStage.setTitle("Card Payment");
+        cardStage.setResizable(false);
+
+        VBox mainLayout = new VBox(20);
+        mainLayout.setPadding(new Insets(30));
+        mainLayout.setAlignment(Pos.CENTER);
+        mainLayout.setStyle("-fx-background-color: #ecf0f1;");
+
+        Label titleLabel = new Label("Card Payment");
+        titleLabel.setFont(new Font("Arial", 24));
+        titleLabel.setStyle("-fx-font-weight: bold;");
+
+        Label totalLabel = new Label(String.format("Total Amount: $%.2f", currentTotal));
+        totalLabel.setFont(new Font("Arial", 18));
+        totalLabel.setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold;");
+
+        // Card Number Input
+        HBox cardNumberBox = new HBox(10);
+        cardNumberBox.setAlignment(Pos.CENTER);
+        Label cardNumberLabel = new Label("Card Number:");
+        cardNumberLabel.setFont(new Font("Arial", 16));
+
+        TextField cardNumberField = new TextField();
+        cardNumberField.setPromptText("Enter card number");
+        cardNumberField.setPrefWidth(200);
+        cardNumberField.setFont(new Font("Arial", 16));
+
+        cardNumberBox.getChildren().addAll(cardNumberLabel, cardNumberField);
+
+        // Expiry Date Input
+        HBox expiryDateBox = new HBox(10);
+        expiryDateBox.setAlignment(Pos.CENTER);
+        Label expiryDateLabel = new Label("Expiry Date (MM/YY):");
+        expiryDateLabel.setFont(new Font("Arial", 16));
+
+        TextField expiryDateField = new TextField();
+        expiryDateField.setPromptText("MM/YY");
+        expiryDateField.setPrefWidth(100);
+        expiryDateField.setFont(new Font("Arial", 16));
+
+        expiryDateBox.getChildren().addAll(expiryDateLabel, expiryDateField);
+
+        // CVV Input
+        HBox cvvBox = new HBox(10);
+        cvvBox.setAlignment(Pos.CENTER);
+        Label cvvLabel = new Label("CVV:");
+        cvvLabel.setFont(new Font("Arial", 16));
+
+        TextField cvvField = new TextField();
+        cvvField.setPromptText("123");
+        cvvField.setPrefWidth(80);
+        cvvField.setFont(new Font("Arial", 16));
+
+        cvvBox.getChildren().addAll(cvvLabel, cvvField);
+
+        // Cardholder Name Input
+        HBox cardholderBox = new HBox(10);
+        cardholderBox.setAlignment(Pos.CENTER);
+        Label cardholderLabel = new Label("Cardholder Name:");
+        cardholderLabel.setFont(new Font("Arial", 16));
+
+        TextField cardholderField = new TextField();
+        cardholderField.setPromptText("Enter name on card");
+        cardholderField.setPrefWidth(200);
+        cardholderField.setFont(new Font("Arial", 16));
+
+        cardholderBox.getChildren().addAll(cardholderLabel, cardholderField);
+
+        // Buttons
+        HBox buttonBox = new HBox(20);
+        buttonBox.setAlignment(Pos.CENTER);
+
+        Button processButton = new Button("Process Payment");
+        processButton.setPrefSize(180, 50);
+        processButton.setFont(new Font("Arial", 16));
+        processButton.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;");
+
+        Button cancelButton = new Button("Cancel");
+        cancelButton.setPrefSize(100, 50);
+        cancelButton.setFont(new Font("Arial", 16));
+        cancelButton.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold;");
+
+        buttonBox.getChildren().addAll(processButton, cancelButton);
+
+        // Add validation for card number (only digits)
+        cardNumberField.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                cardNumberField.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+            if (newValue.length() > 16) {
+                cardNumberField.setText(newValue.substring(0, 16));
+            }
+        });
+
+        // Add validation for expiry date (MM/YY format)
+        expiryDateField.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d{0,2}/\\d{0,2}|\\d{0,2}")) {
+                expiryDateField.setText(oldValue);
+            } else if (newValue.length() == 2 && oldValue.length() == 1 && !newValue.contains("/")) {
+                expiryDateField.setText(newValue + "/");
+            }
+        });
+
+        // Add validation for CVV (only digits, max 3-4 digits)
+        cvvField.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (!newValue.matches("\\d*")) {
+                cvvField.setText(newValue.replaceAll("[^\\d]", ""));
+            }
+            if (newValue.length() > 4) {
+                cvvField.setText(newValue.substring(0, 4));
+            }
+        });
+
+        // Process payment button action
+        processButton.setOnAction(e -> {
+            // Validate inputs
+            boolean isValid = true;
+            String errorMessage = "";
+
+            if (cardNumberField.getText().trim().isEmpty() || cardNumberField.getText().length() < 13) {
+                isValid = false;
+                errorMessage += "Please enter a valid card number (13-16 digits).\n";
+            }
+
+            if (expiryDateField.getText().trim().isEmpty() || !expiryDateField.getText().matches("\\d{2}/\\d{2}")) {
+                isValid = false;
+                errorMessage += "Please enter a valid expiry date (MM/YY).\n";
+            }
+
+            if (cvvField.getText().trim().isEmpty() || cvvField.getText().length() < 3) {
+                isValid = false;
+                errorMessage += "Please enter a valid CVV (3-4 digits).\n";
+            }
+
+            if (cardholderField.getText().trim().isEmpty()) {
+                isValid = false;
+                errorMessage += "Please enter the cardholder name.\n";
+            }
+
+            if (isValid) {
+                // Process the card payment
+                cardStage.close();
+
+                // Get card details for database (if needed)
+                String cardNumber = cardNumberField.getText();
+                String expiryDate = expiryDateField.getText();
+                String cvv = cvvField.getText();
+                String cardholderName = cardholderField.getText();
+
+                // Store last 4 digits for receipt
+                String lastFourDigits = cardNumber.substring(cardNumber.length() - 4);
+
+                // Complete the transaction with card details
+                completeCardTransaction(lastFourDigits, cardholderName);
+            } else {
+                // Show error message
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Validation Error");
+                alert.setHeaderText(null);
+                alert.setContentText(errorMessage);
+                alert.showAndWait();
+            }
+        });
+
+        // Cancel button action
+        cancelButton.setOnAction(e -> cardStage.close());
+
+        mainLayout.getChildren().addAll(titleLabel, totalLabel, cardNumberBox, expiryDateBox, cvvBox, cardholderBox, buttonBox);
+
+        Scene scene = new Scene(mainLayout, 500, 450);
+        cardStage.setScene(scene);
+
+        // Show the stage
+        cardStage.show();
+        cardNumberField.requestFocus();
+    }
+
+    private void completeCardTransaction(String lastFourDigits, String cardholderName) {
+        // Complete the transaction with card payment method
+        // We'll pass the card information to be displayed in the receipt
+        String cardInfo = "Card ending in " + lastFourDigits + " (" + cardholderName + ")";
+        completeTransaction("Card: " + cardInfo);
     }
 
     private void showCashPaymentDialog() {
@@ -474,6 +662,63 @@ public class MainForm extends Application {
     }
 
     private void completeTransaction(String paymentMethod, double cashGiven, double change) {
+        // Create a new Sale record
+        Sale sale = new Sale();
+        sale.setEmployeeID(1); // Assuming employee ID 1 for now, you might want to get the actual employee ID
+        sale.setSupermarketID(this.marketID);
+        sale.setTotalAmount(currentTotal);
+        sale.setSaleDate(new java.sql.Timestamp(System.currentTimeMillis()));
+
+        // Save the sale to the database
+        boolean saleCreated = DatabaseManager.createSale(sale);
+
+        if (saleCreated) {
+            // Process each item in the cart
+            for (int i = 0; i < cartItemsVBox.getChildren().size(); i++) {
+                HBox itemRow = (HBox) cartItemsVBox.getChildren().get(i);
+                Label itemInfoLabel = (Label) itemRow.getChildren().get(0);
+                String itemText = itemInfoLabel.getText();
+
+                try {
+                    // Extract product ID, name, and quantity from the label
+                    String idPart = itemText.substring(itemText.indexOf("ID: ") + 4, itemText.indexOf(" | Name:"));
+                    int productId = Integer.parseInt(idPart);
+
+                    String namePart = itemText.substring(itemText.indexOf("Name: ") + 6, itemText.indexOf(" | Qty:"));
+
+                    String qtyPart = itemText.substring(itemText.indexOf("Qty: ") + 5, itemText.indexOf(" | Price:"));
+                    int quantity = Integer.parseInt(qtyPart);
+
+                    String pricePart = itemText.substring(itemText.indexOf("Price: $") + 8, itemText.indexOf(" ("));
+                    double price = Double.parseDouble(pricePart);
+
+                    // Create a SaleItem for this product
+                    SaleItem saleItem = new SaleItem();
+                    saleItem.setSaleID(sale.getSaleID());
+                    saleItem.setProductID(productId);
+                    saleItem.setQuantity(quantity);
+                    saleItem.setUnitPrice(new java.math.BigDecimal(price / quantity)); // Unit price
+
+                    // Save the sale item to the database
+                    DatabaseManager.createSaleItem(saleItem);
+
+                    // Update inventory (reduce quantity)
+                    Inventory inventory = new Inventory();
+                    inventory.setProductID(productId);
+
+                    // Get current quantity from database and subtract the sold quantity
+                    Product dbProduct = DatabaseManager.getProductById(productId, 0);
+                    if (dbProduct != null) {
+                        int newQuantity = dbProduct.getQuantityInStock() - quantity;
+                        inventory.setQuantity(newQuantity > 0 ? newQuantity : 0);
+                        DatabaseManager.updateInventory(inventory);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Error processing cart item for database: " + itemText + " - " + e.getMessage());
+                }
+            }
+        }
+
         StringBuilder message = new StringBuilder();
         message.append("Transaction Made Successfully!\n\n");
         message.append(String.format("Transaction Amount: $%.2f\n", currentTotal));
@@ -483,6 +728,8 @@ public class MainForm extends Application {
             message.append(String.format("Cash Given: $%.2f\n", cashGiven));
             message.append(String.format("Change: $%.2f\n", change));
         }
+        // For card payments, the payment method already includes the card details
+        // so we don't need to add any additional information
 
         message.append("\nThank you for your purchase!");
 
@@ -493,7 +740,6 @@ public class MainForm extends Application {
         itemPricesVBox.getChildren().clear();
         currentTotal = 0.0;
         totalAmountLabel.setText("$0.00");
-
 
         // Clear the product stack
         productStack.clear();
